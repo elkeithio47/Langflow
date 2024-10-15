@@ -1,0 +1,100 @@
+from typing import Any, Dict, List
+from pydantic import BaseModel, Field
+from langflow.base.langchain_utilities.model import LCToolComponent
+from langflow.inputs import MessageTextInput, SecretStrInput, MultilineInput
+from langflow.schema import Data
+import requests
+
+class TelegramGroupFetcherComponent(LCToolComponent):
+    display_name: str = "Telegram Group Message Fetcher"
+    description: str = "Fetch messages from specific Telegram groups using Telegram Bot API."
+    name = "TelegramGroupFetcher"
+    documentation: str = "https://core.telegram.org/bots/api#getupdates"
+
+    # Define the inputs needed for this component
+    inputs = [
+        SecretStrInput(name="bot_token", display_name="Telegram Bot Token", required=True),
+        MultilineInput(name="group_ids", display_name="Group/Channel IDs", required=True),
+        MessageTextInput(name="limit", display_name="Limit", required=False, value="5"),
+        MessageTextInput(name="filter_keyword", display_name="Filter Keyword", required=False)
+    ]
+
+    # Define the schema for the API tool arguments
+    class TelegramGroupFetcherSchema(BaseModel):
+        bot_token: str = Field(..., description="Your Telegram Bot API Token.")
+        group_ids: str = Field(..., description="Comma-separated list of group or channel chat IDs.")
+        limit: int = Field(5, description="Number of messages to retrieve from each group.")
+        filter_keyword: str = Field(None, description="Optional keyword to filter messages.")
+
+    # Fetch messages from Telegram groups
+    def fetch_group_messages(self, bot_token: str, group_id: str, limit: int = 5, filter_keyword: str = None) -> List[Dict[str, Any]]:
+        url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
+        params = {"limit": limit}
+
+        response = requests.get(url, params=params)
+
+        if response.status_code != 200:
+            raise Exception(f"Error {response.status_code}: {response.text}")
+
+        updates = response.json().get("result", [])
+        group_messages = []
+
+        # Filter messages for the specific group and optional keyword
+        for update in updates:
+            message = update.get("message", {})
+            if message.get("chat", {}).get("id") == int(group_id):
+                text = message.get("text", "")
+                if not filter_keyword or filter_keyword.lower() in text.lower():
+                    group_messages.append({
+                        "group_id": group_id,
+                        "author": message.get("from", {}).get("username", "Unknown"),
+                        "text": text,
+                        "timestamp": message.get("date")
+                    })
+
+        return group_messages
+
+    # Build the API wrapper and tool
+    def build_tool(self)->Tool:
+        def get_group_messages(bot_token: str, group_ids: str, limit: int = 5, filter_keyword: str = None) -> List[Dict[str, Any]]:
+            group_ids_list = [group_id.strip() for group_id in group_ids.split(",")]
+            all_messages = []
+
+            for group_id in group_ids_list:
+                messages = self.fetch_group_messages(bot_token=bot_token, group_id=group_id, limit=limit, filter_keyword=filter_keyword)
+                all_messages.extend(messages)
+
+            return all_messages
+
+        tool = StructuredTool.from_function(
+            name="telegram_group_fetcher",
+            description="Fetch messages from specific Telegram groups using Telegram Bot API.",
+            func=get_group_messages,
+            args_schema=self.TelegramGroupFetcherSchema,
+        )
+
+        self.status = "Telegram Group Message Fetcher Tool created successfully."
+        return tool
+
+    # Run model function to trigger the API call
+    def run_model(self) -> List[Data]:
+        tool = self.build_tool()
+
+        # Fetch messages from specified groups based on user inputs
+        results = tool.run(
+            {
+                "bot_token": self.bot_token,
+                "group_ids": self.group_ids,
+                "limit": int(self.limit),
+                "filter_keyword": self.filter_keyword,
+            }
+        )
+
+        # Format the results for output
+        formatted_results = [
+            Data(data=message, text=f"Group: {message['group_id']}, Author: {message['author']}, Message: {message['text']}")
+            for message in results
+        ]
+
+        self.status = formatted_results
+        return formatted_results
