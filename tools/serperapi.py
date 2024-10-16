@@ -1,5 +1,4 @@
 from typing import Any
-
 from langchain.tools import StructuredTool
 from pydantic import BaseModel, Field
 from langflow.base.langchain_utilities.model import LCToolComponent
@@ -7,75 +6,93 @@ from langflow.field_typing import Tool
 from langflow.inputs import IntInput, MessageTextInput, SecretStrInput
 from langflow.schema import Data
 import requests
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
-# Define the component class for Google Serper API
-class GoogleSerperAPIComponent(LCToolComponent):
-    display_name: str = "Google Serper API"
-    description: str = "Retrieve search results using the Google Serper API."
-    name = "GoogleSerperAPI"
+# Define the component class for SerpApi
+class GoogleSerpAPIComponent(LCToolComponent):
+    display_name: str = "Google Serp API"
+    description: str = "Retrieve search results using the Google Serp API."
+    name = "GoogleSerpAPI"
     documentation: str = "https://serpapi.com/docs/"
-    
-        # Define the inputs needed for this component
+
+    # Define the inputs needed for this component
     inputs = [
-        SecretStrInput(name="api_key", display_name="Serper API Key", required=True),
-        MessageTextInput(name="query", display_name="Search Query"),
-        IntInput(name="num_results", display_name="Number of Results", value=4, required=True),
+        SecretStrInput(name="api_key", display_name="SerpApi API Key", required=True),
+        MessageTextInput(name="query", display_name="Search Query", required=True),
+        IntInput(name="num_results", display_name="Number of Results", value=10, required=True),
         MessageTextInput(name="gl", display_name="Geographical Location (gl)", value="us"),
         MessageTextInput(name="hl", display_name="Language (hl)", value="en"),
     ]
-    
-        # Define the schema for the API tool arguments
-    class GoogleSerperSchema(BaseModel):
-        api_key: str = Field(..., description="Google Serper API Key")
+
+    # Define the schema for the API tool arguments
+    class GoogleSerpAPISchema(BaseModel):
+        api_key: str = Field(..., description="SerpApi API Key")
         query: str = Field(..., description="The search query string")
-        num_results: int = Field(4, description="Number of search results to retrieve")
+        num_results: int = Field(10, description="Number of search results to retrieve")
         gl: str = Field("us", description="Geographical location (e.g., 'us' for United States)")
         hl: str = Field("en", description="Language for the search (e.g., 'en' for English)")
-    
-    
-    # Define the API Wrapper for Google Serper API
-    class GoogleSerperAPIWrapper:
+
+    # Define the API Wrapper for SerpApi
+    class GoogleSerpAPIWrapper:
         def __init__(self, api_key: str):
             self.api_key = api_key
-            self.url = "https://google.serper.dev/search"
-            self.headers = {
-                "Accept": "application/json",
-                "Authorization": f"Bearer {self.api_key}",  # API key passed in the headers
-            }
+            self.url = "https://serpapi.com/search"
     
-        def get_search_results(self, query: str, num_results: int = 4, gl: str = "us", hl: str = "en") -> list[dict[str, Any]]:
-            params = {"q": query, "gl": gl, "hl": hl, "num": num_results}
-            response = requests.get(self.url, headers=self.headers, params=params)
-            
+        def get_search_results(self, query: str, num_results: int = 10, gl: str = "us", hl: str = "en") -> list[dict[str, Any]]:
+            params = {
+                "q": query,
+                "num": num_results,
+                "gl": gl,
+                "hl": hl,
+                "engine": "google",
+                "api_key": "key hard coded here" #self.api_key""
+            }
+
+            # Print the API key being used
+            logging.debug(f"API Key: {self.api_key}")
+
+            # Log the URL and parameters being sent to SerpApi
+            logging.debug(f"Request URL: {self.url}")
+            logging.debug(f"Request Params: {params}")
+
+            response = requests.get(self.url, params=params)
+
+            # Log the response status and content
+            logging.debug(f"Response Status Code: {response.status_code}")
+            logging.debug(f"Response Content: {response.text}")
+
+            # Check for errors
             if response.status_code == 403:
                 raise Exception("Error 403: Forbidden. Please check your API key or request quota.")
+            elif response.status_code == 401:
+                raise Exception("Error 401: Invalid API key. Please verify your API key.")
             elif response.status_code != 200:
                 raise Exception(f"Error {response.status_code}: {response.json().get('error', 'Unknown error')}")
-    
-            return response.json().get('organic', [])  # Extract organic search results
+
+            # Return the organic results from the response
+            return response.json().get('organic_results', [])
 
     # Build the API wrapper
     def _build_wrapper(self, api_key: str):
-        # Pass the api_key dynamically when building the wrapper
-        return self.GoogleSerperAPIWrapper(api_key=api_key)
+        return self.GoogleSerpAPIWrapper(api_key=api_key)
 
     # Tool builder function
     def build_tool(self) -> Tool:
-        #wrapper = self._build_wrapper()
-
-        def get_search_results(api_key: str, query: str, num_results: int = 4, gl: str = "us", hl: str = "en") -> list[dict[str, Any]]:
-            wrapper = self._build_wrapper(api_key=api_key)  # Pass API key dynamically
+        def get_search_results(api_key: str, query: str, num_results: int = 10, gl: str = "us", hl: str = "en") -> list[dict[str, Any]]:
+            wrapper = self._build_wrapper(api_key=api_key)
             return wrapper.get_search_results(query=query, num_results=num_results, gl=gl, hl=hl)
 
         tool = StructuredTool.from_function(
-            name="google_serper_api",
-            description="Fetch search results using Google Serper API",
+            name="google_serp_api",
+            description="Fetch search results using Google Serp API",
             func=get_search_results,
-            args_schema=self.GoogleSerperSchema,  # Ensure the schema is correctly referenced here
+            args_schema=self.GoogleSerpAPISchema,
         )
 
-        self.status = f"Google Serper API Tool created with API Key."
+        self.status = "Google Serp API Tool created successfully."
         return tool
 
     # Run model function to trigger the API call

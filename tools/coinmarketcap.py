@@ -1,14 +1,4 @@
-"""
-from langchain_core.tools import Tool
-
-from langflow.base.langchain_utilities.model import LCToolComponent
-from langflow.inputs import IntInput, MultilineInput, SecretStrInput
-from langflow.schema import Data
-"""
-
-
 from typing import Any
-
 from langchain.tools import StructuredTool
 from pydantic import BaseModel, Field
 from langflow.base.langchain_utilities.model import LCToolComponent
@@ -16,9 +6,6 @@ from langflow.field_typing import Tool
 from langflow.inputs import DictInput, IntInput, MultilineInput, SecretStrInput
 from langflow.schema import Data
 import requests
-
-
-
 
 class CoinMarketCapAPIComponent(LCToolComponent):
     display_name: str = "CoinMarketCap API"
@@ -45,30 +32,8 @@ class CoinMarketCapAPIComponent(LCToolComponent):
                 raise Exception(f"Error {response.status_code}: {data.get('status', {}).get('error_message', 'Unknown error')}")
     
             return data["data"]
-
-
-    """
-    inputs = [
-        SecretStrInput(name="google_api_key", display_name="Google API Key", required=True),
-        SecretStrInput(name="google_cse_id", display_name="Google CSE ID", required=True),
-        MultilineInput(
-            name="input_value",
-            display_name="Input",
-        ),
-        IntInput(name="k", display_name="Number of results", value=4, required=True),
-    ]
-    """
-    """
+    
     # Define the inputs needed for this component
-    inputs = [
-        SecretStrInput(name="api_key", display_name="CoinMarketCap API Key", required=True),
-        IntInput(name="start", display_name="Start", value=1, description="The rank from which to start the listing"),
-        IntInput(name="limit", display_name="Limit", value=10, description="The number of cryptocurrencies to retrieve"),
-    ]
-    
-    """
-    
-        # Define the inputs needed for this component
     inputs = [
         SecretStrInput(name="api_key", display_name="CoinMarketCap API Key", required=True),
         IntInput(name="start", display_name="Start", value=1 , required=True),
@@ -83,7 +48,7 @@ class CoinMarketCapAPIComponent(LCToolComponent):
     
     # Helper function to build the API wrapper
     def _build_wrapper(self):
-        return CoinMarketCapAPIWrapper(api_key=self.api_key)
+        return self.CoinMarketCapAPIWrapper(api_key=self.api_key)
 
     # Tool builder function
     def build_tool(self) -> Tool:
@@ -120,30 +85,3 @@ class CoinMarketCapAPIComponent(LCToolComponent):
 
         self.status = data_list
         return data_list    
-    
-    
-    
-    """
-    def run_model(self) -> Data | list[Data]:
-        wrapper = self._build_wrapper()
-        results = wrapper.results(query=self.input_value, num_results=self.k)
-        data = [Data(data=result, text=result["snippet"]) for result in results]
-        self.status = data
-        return data
-
-    def build_tool(self) -> Tool:
-        wrapper = self._build_wrapper()
-        return Tool(
-            name="google_search",
-            description="Search Google for recent results.",
-            func=wrapper.run,
-        )
-
-    def _build_wrapper(self):
-        try:
-            from langchain_google_community import GoogleSearchAPIWrapper
-        except ImportError as e:
-            msg = "Please install langchain-google-community to use GoogleSearchAPIWrapper."
-            raise ImportError(msg) from e
-        return GoogleSearchAPIWrapper(google_api_key=self.google_api_key, google_cse_id=self.google_cse_id, k=self.k)
-    """
