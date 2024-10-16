@@ -43,24 +43,35 @@ class CoinGeckoComponent(LCToolComponent):
                 "include_24hr_change": "true" if self.metric == "price_change" else "false",
             }
 
-            response = requests.get(url, params=params)
+            try:
+                response = requests.get(url, params=params)
 
-            if response.status_code != 200:
-                raise Exception(f"Error {response.status_code}: {response.text}")
+                if response.status_code == 429:
+                    # Rate limiting occurred, return a safe message without throwing an exception
+                    print("Rate limit exceeded. Please try again later.")
+                    return {"error": "Rate limit exceeded"}
 
-            data = response.json()
+                if response.status_code != 200:
+                    raise Exception(f"Error {response.status_code}: {response.text}")
 
-            if self.crypto_id not in data:
-                raise ValueError(f"Cryptocurrency '{self.crypto_id}' not found.")
+                data = response.json()
 
-            return data[self.crypto_id]
+                if self.crypto_id not in data:
+                    raise ValueError(f"Cryptocurrency '{self.crypto_id}' not found.")
+
+                return data[self.crypto_id]
+
+            except Exception as e:
+                # Catch any other exceptions and handle them gracefully
+                print(f"An error occurred: {e}")
+                return {"error": str(e)}
 
     # Build the API wrapper
     def _build_wrapper(self, crypto_id: str, currency: str, metric: str):
         return self.CoinGeckoAPIWrapper(crypto_id=crypto_id, currency=currency, metric=metric)
 
     # Tool builder function
-    def build_tool(self)->Tool:
+    def build_tool(self) -> Tool:
         def get_crypto_data(crypto_id: str, currency: str = "usd", metric: str = "price") -> Dict[str, Any]:
             wrapper = self._build_wrapper(crypto_id=crypto_id, currency=currency, metric=metric)
             return wrapper.get_crypto_data()
@@ -87,6 +98,10 @@ class CoinGeckoComponent(LCToolComponent):
                 "metric": self.metric,
             }
         )
+
+        # Handle rate limit or errors gracefully
+        if "error" in results:
+            return [Data(data=results, text=results["error"])]
 
         # Format the results for output
         if self.metric == "price":
