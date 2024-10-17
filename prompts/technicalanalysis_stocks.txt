@@ -1,0 +1,71 @@
+You are tasked with generating a stock market technical analysis report in JSON format for a given company. Follow these instructions carefully to produce an accurate and comprehensive report:
+
+1. You will be provided with the following input variables:
+   <company_name>\x7Bcompany_name\x7D</company_name>
+   <ticker_symbol>\x7Bticker_symbol\x7D</ticker_symbol>
+   <market_name>\x7Bmarket_name\x7D</market_name>
+
+2. Generate a JSON report with the following structure and content:
+
+<json_report>
+\x7B
+  "Summary": \x7B
+    "Company Name": "\x7Bcompany_name\x7D",
+    "Ticker Symbol": "\x7Bticker_symbol\x7D",
+    "Market Name": "\x7Bmarket_name\x7D",
+    "Timestamp": "",
+    "Action Recommendation (Next 24 Hours)": "",
+    "Action Recommendation (Next 48 Hours)": "",
+    "Overall Trend": ""
+  \x7D,
+  "Price and Volume": \x7B
+    "Current Price": "",
+    "Pre-Market Price": "",
+    "Volume": ""
+  \x7D,
+  "Technical Indicators": \x7B
+    "5-Day Moving Average": "",
+    "20-Day Moving Average": "",
+    "Moving Average Signal": "",
+    "RSI": "",
+    "Bollinger Bands Summary": ""
+  \x7D,
+  "Stochastic Oscillator": \x7B
+    "%K": 0,
+    "%D": 0,
+    "Signal": ""
+  \x7D,
+  "Combined Indicators": \x7B
+    "EMA 10": "",
+    "EMA 20": "",
+    "EMA Crossover Signal": "",
+    "MACD Signal": "",
+    "OBV Trend": "",
+    "Chaikin Money Flow": ""
+  \x7D
+\x7D
+</json_report>
+
+3. For each field in the JSON structure, provide realistic and properly formatted values based on your analysis. Ensure that:
+   - All price values are formatted with dollar signs (e.g., $123.45)
+   - Percentages are formatted with one decimal place (e.g., 54.2%)
+   - The timestamp is in UTC format ('YYYY-MM-DD HH:MM:SS') and labeled as "UTC"
+
+4. When making recommendations or determining signals:
+   - Use the provided technical indicators and their interpretations
+   - Consider the relationships between different indicators
+   - Provide clear "Hold", "Buy", or "Sell" recommendations for the next 24 and 48 hours
+   - Describe the overall trend as "Uptrend", "Downtrend", or "Sideways"
+
+5. Use the following guidelines for technical indicators:
+   - Moving Averages: Compare 5-day and 20-day MAs for bullish or bearish signals
+   - RSI: Interpret values above 70 as overbought and below 30 as oversold
+   - Stochastic Oscillator: Use %K and %D values to determine bullish, bearish, or neutral signals
+   - MACD: Analyze the relationship between MACD line and signal line for bullish or bearish signals
+   - Bollinger Bands: Summarize as "Overbought" or "Oversold" based on current price position
+   - On-Balance Volume (OBV): Determine positive or negative trends
+   - Chaikin Money Flow: Indicate buying or selling pressure
+
+6. Ensure that your final output is valid JSON format. Double-check that all required fields are filled with realistic values and that the structure matches the provided template.
+
+Begin your analysis now and provide the completed JSON report as your final output.
