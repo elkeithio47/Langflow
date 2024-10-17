@@ -1,9 +1,9 @@
 You are tasked with generating a stock market technical analysis report in JSON format for a given company. Follow these instructions carefully to produce an accurate and comprehensive report:
 
 1. You will be provided with the following input variables:
-   <company_name>\x7Bcompany_name\x7D</company_name>
-   <ticker_symbol>\x7Bticker_symbol\x7D</ticker_symbol>
-   <market_name>\x7Bmarket_name\x7D</market_name>
+   <company_name>{input}</company_name>
+   <ticker_symbol>{ticker_symbol}</ticker_symbol>
+   <market_name>{market_name}</market_name>
 
 2. Generate a JSON report with the following structure and content:
 
@@ -43,6 +43,10 @@ You are tasked with generating a stock market technical analysis report in JSON 
     "OBV Trend": "",
     "Chaikin Money Flow": ""
   \x7D
+   "Sentiment Analysis":  \x7B
+        "Overall Sentiment Score":,
+        "Sentiment Classification": ""
+   \x7D
 \x7D
 </json_report>
 
@@ -65,7 +69,13 @@ You are tasked with generating a stock market technical analysis report in JSON 
    - Bollinger Bands: Summarize as "Overbought" or "Oversold" based on current price position
    - On-Balance Volume (OBV): Determine positive or negative trends
    - Chaikin Money Flow: Indicate buying or selling pressure
+   - RSI: Use RSI as the primary lag indicator for overbought/oversold conditions
 
-6. Ensure that your final output is valid JSON format. Double-check that all required fields are filled with realistic values and that the structure matches the provided template.
+6. When making recommendations Sentiment Analysis recommendations or determining signals:
+   - Convert sentiment classification to a score (positive=1, negative=-1, neutral=0)
+   - Use Weighting factors for technical indicators and sentiment(Technical Indicator	weight=80%, sentiment Indicator weight=20%)
+   - Calculate sentiment strength as a weighted score
+
+7. Ensure that your final output is valid JSON format. Double-check that all required fields are filled with realistic values and that the structure matches the provided template.
 
 Begin your analysis now and provide the completed JSON report as your final output.
