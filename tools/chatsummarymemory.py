@@ -1,5 +1,4 @@
 from langchain.memory import ConversationBufferMemory,ConversationSummaryBufferMemory
-
 from langflow.custom import Component
 from langflow.field_typing import BaseChatMemory
 from langflow.helpers.data import data_to_text
@@ -9,26 +8,22 @@ from langflow.memory import LCBuiltinChatMemory, get_messages
 from langflow.schema import Data
 from langflow.schema.message import Message
 from langflow.utils.constants import MESSAGE_SENDER_AI, MESSAGE_SENDER_USER
-#from langchain.utils import count_tokens  # Utility to count tokens
-
-from langchain.chat_models import ChatOpenAI  # Use ChatOpenAI for chat-based models
-from langchain.llms import OpenAI  # Assuming OpenAI model is used for summarization
+from langchain.chat_models import ChatOpenAI
+from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
-import tiktoken  # Tokenizer for OpenAI models
+import tiktoken
 import langwatch
-#from openai import OpenAI
-
-#from langchain.callbacks.base import CallbackManager, BaseCallbackHandler
 
 class MemoryComponent(Component):
-    display_name = "Chat Memory"
+    display_name = "Chat Summary Memory"
     description = "Retrieves stored chat messages from Langflow tables or an external memory."
     icon = "message-square-more"
     name = "Memory"
 
     inputs = [
+        HandleInput(name="llm", display_name="Language Model", input_types=["LanguageModel"], required=True),
         HandleInput(
             name="memory",
             display_name="External Memory",
@@ -84,7 +79,10 @@ class MemoryComponent(Component):
             value=1000,
             info="Desired character limit used to summarize converstion message history",
             advanced=True,
-        )
+        ),
+        MultilineInput(
+            name="user_prompt", display_name="Prompt", info="Summarization strategies for controlling conversational growth", value="{text} {char_limit}"
+        ),
     ]
 
     outputs = [
@@ -127,79 +125,50 @@ class MemoryComponent(Component):
         return stored
 
     def retrieve_messages_as_text(self) -> Message:
-        # Step 1: Retrieve the messages using the existing retrieve_messages() method
+       
         retrieved_messages = self.retrieve_messages()
 
-            # Step 2: Check if there are any messages to summarize
+        # Check if there are any messages to summarize
         if not retrieved_messages:
-            # If no messages exist, handle the case appropriately (e.g., return a message or empty response)
             print("No conversation message history found. Skipping summarization.")
             return Message(text="No conversation history available for summarization.")
 
-        # Step 2: Convert the message data into a format suitable for summarization
         message_text = data_to_text(self.template, retrieved_messages)
 
-        # Step 3: Perform summarization using LangChain's summarization capabilities
-        # Pass a desired character limit to summarize_text method
-        summarized_text = self.summarize_text(message_text, self.n_character_limit)  # Example limit
+        original_token_count = self.count_tokens(message_text, model_name=self.llm.model_name)
+        print(f"Current message text token count: {original_token_count}")
+        #print(f"Current message text:\n{message_text}\n")
 
-        # Step 4: Update the status and return the summarized message
-        self.status = summarized_text
-        return Message(text=summarized_text)        # Step 1: Retrieve the messages using the existing retrieve_messages() method
-        retrieved_messages = self.retrieve_messages()
+        if original_token_count > self.n_character_limit:
+            summarized_text = self.summarize_text(message_text, self.n_character_limit)
+    
+            summarized_token_count = self.count_tokens(summarized_text, model_name=self.llm.model_name)
+            print(f"Summarized message text token count: {summarized_token_count}")
+            #print(f"Summarized message text:\n{summarized_text}\n")        
+    
+            self.status = summarized_text
+            print(f"New conversation message history:\n{summarized_text}")
 
-        # Step 2: Convert the message data into a format suitable for summarization
-        message_text = data_to_text(self.template, retrieved_messages)
-
-        # Step 3: Print the original message text and token count before summarization
-        original_token_count = self.count_tokens(message_text, model_name="gpt-3.5-turbo")
-        print(f"Original message text token count: {original_token_count}")
-        print(f"Original message text:\n{message_text}\n")
-
-        # Step 4: Perform summarization using LangChain's summarization capabilities
-        summarized_text = self.summarize_text(message_text, char_limit=500)  # Example limit
-
-        # Step 5: Print the summarized message text and token count after summarization
-        summarized_token_count = self.count_tokens(summarized_text, model_name="gpt-3.5-turbo")
-        print(f"Summarized message text token count: {summarized_token_count}")
-        print(f"Summarized message text:\n{summarized_text}\n")
-
-        # Step 6: Print the conversation message history (after summarization)
-        self.status = summarized_text
-        print(f"New conversation message history:\n{summarized_text}")
-
-        return Message(text=summarized_text)
+            return Message(text=summarized_text)
+        
+        return Message(text="No conversation history available for summarization.")
 
     @langwatch.trace()
     def summarize_text(self, text: str, char_limit: int) -> str:
-        
-        #client = OpenAI()
-        #langwatch.get_current_trace().autotrack_openai_calls(client)
-        # Step 7: Implement the summarization logic using an LLM chain with character limit
 
-        openai_api_key = "key"  # Replace with your OpenAI API key
-
-        # Use ChatOpenAI for chat models like gpt-3.5-turbo
-        llm = ChatOpenAI(model="gpt-3.5-turbo", openai_api_key=openai_api_key)
-
-        # Modify the prompt template to include the character limit instruction
         prompt_template = PromptTemplate(
-            template=f"Summarize the following conversation in {char_limit} characters or fewer:\n\n{{text}}\n",
-            input_variables=["text"]
+            template=self.user_prompt,
+            input_variables=["text", "char_limit"] 
         )
+        
+        summarization_chain = LLMChain(llm=self.llm, prompt=prompt_template)
 
-        summarization_chain = LLMChain(llm=llm, prompt=prompt_template)
-
-        # Run the summarization chain using the 'predict' method
         summarized_output = summarization_chain.predict(
             text=text,  # Pass the conversation text directly (as a string, not wrapped in a list)
+            char_limit=char_limit,  # Pass the character limit
             callbacks=[langwatch.get_current_trace().get_langchain_callback()]  # Passing callbacks
         )
         
-        # Print the summarized result
-        print(summarized_output)
-
-
         return summarized_output
 
     def count_tokens(self, text: str, model_name: str) -> int:

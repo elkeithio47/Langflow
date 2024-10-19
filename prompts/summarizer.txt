@@ -1,6 +1,6 @@
-You are tasked with summarizing a set of conversational messages while maintaining cohesion and consistency, even when the conversation takes sharp turns. Your summary should capture the essence of the conversation while adhering to a specified character limit.
+You are tasked with summarizing a set of conversational messages while adhering to a specified maximum character limit. Your goal is to maintain as much of the original context and detail as possible while reducing the overall character count.
 
-Here is the set of messages to summarize:
+Here are the messages you need to summarize:
 <messages>
 {text}
 </messages>
@@ -8,34 +8,42 @@ Here is the set of messages to summarize:
 The maximum character limit for your summary is:
 <max_chars>{char_limit}</max_chars>
 
-When creating your summary, employ the following techniques:
+Follow these guidelines to create your summary:
 
-1. Hierarchical Summarization: Create a multi-tiered summary with high-level themes, mid-level key points, and granular details of the latest exchanges.
+1. Hierarchical Summarization:
+   - Capture high-level themes and goals
+   - Summarize key sub-conversations
+   - Include granular details of the latest exchanges
 
-2. Sliding Window Approach: Prioritize recent information while retaining key context anchors from earlier in the conversation.
+2. Sliding Window Approach:
+   - Prioritize recent information
+   - Retain key context anchors from earlier in the conversation
 
-3. Contextual Chunking: Group information into logical chunks based on topics or themes.
+3. Contextual Chunking:
+   - Group information into logical chunks based on topics or themes
 
-4. Explicit Concept Tracking: Maintain a conceptual map of core concepts, goals, constraints, and preferences discussed throughout the conversation.
+4. Explicit Concept Tracking:
+   - Maintain a conceptual map of core concepts (goals, constraints, preferences)
 
-5. Contextual Weighting and Prioritization: Assign relevance scores to different pieces of context, prioritizing recent and highly relevant concepts.
+5. Contextual Weighting and Prioritization:
+   - Assign higher relevance to recent and highly pertinent concepts
 
-To maintain cohesion and consistency:
+6. Thread Segmentation:
+   - Keep distinct conversation threads separate to prevent cross-talk
 
-- Identify and highlight overarching themes or goals that persist throughout the conversation.
-- Track any significant shifts in topic or direction, noting how they relate to previous discussion points.
-- Ensure that important context from earlier in the conversation is retained, even if the focus has changed.
-- Use linking phrases to show how different parts of the conversation connect, even when there are sharp turns.
+7. Change Detection and Reflection:
+   - Note significant shifts in conversation direction
 
-When handling sharp changes in conversation direction:
+8. User Intent Recognition:
+   - Identify and adapt to changes in user focus or intent
 
-- Clearly indicate the point at which the conversation shifted.
-- Briefly recap the previous topic before introducing the new direction.
-- Highlight any connections between the new topic and previously discussed points, if applicable.
-- If the new direction renders previous discussion irrelevant, note this explicitly.
+9. Checkpoint Summarization:
+   - Create snapshots at key stages of the conversation
 
-Your summary should be concise yet comprehensive, capturing the key points of the conversation while staying within the specified character limit. Focus on the most important information and the overall flow of the conversation.
+10. Techniques to Avoid Redundancy:
+    - Focus on updating new context and adjusting for changes
+    - Use ellipses-style updates for minimal changes
 
-Present your summary within <summary> tags. Before the summary, use <char_limit> tags to indicate the number of characters in your summary, ensuring it does not exceed the specified limit.
+Very important: Maintain as much of the original text as possible while staying within the max character limit. The primary goal of this summarization is to reduce the character count without losing detail and context.
 
-Begin your response now.
+Please provide your summary within <summary> tags. Before the summary, use <char_limit> tags to indicate the character count of your summary.
