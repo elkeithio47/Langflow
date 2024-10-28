@@ -1,4 +1,4 @@
-from langchain.memory import ConversationBufferMemory,ConversationSummaryBufferMemory
+from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
 from langflow.custom import Component
 from langflow.field_typing import BaseChatMemory
 from langflow.helpers.data import data_to_text
@@ -77,7 +77,7 @@ class MemoryComponent(Component):
             name="n_character_limit",
             display_name="Summarization Character Limit",
             value=1000,
-            info="Desired character limit used to summarize converstion message history",
+            info="Desired character limit used to summarize conversation message history",
             advanced=True,
         ),
         MultilineInput(
@@ -125,7 +125,6 @@ class MemoryComponent(Component):
         return stored
 
     def retrieve_messages_as_text(self) -> Message:
-       
         retrieved_messages = self.retrieve_messages()
 
         # Check if there are any messages to summarize
@@ -135,17 +134,16 @@ class MemoryComponent(Component):
 
         message_text = data_to_text(self.template, retrieved_messages)
 
-        original_token_count = self.count_tokens(message_text, model_name=self.llm.model_name)
+        # Dynamically determine the token counting method based on model name
+        original_token_count = self.count_tokens(message_text, model_name=self.llm.model_id)
         print(f"Current message text token count: {original_token_count}")
-        #print(f"Current message text:\n{message_text}\n")
 
         if original_token_count > self.n_character_limit:
             summarized_text = self.summarize_text(message_text, self.n_character_limit)
     
-            summarized_token_count = self.count_tokens(summarized_text, model_name=self.llm.model_name)
+            summarized_token_count = self.count_tokens(summarized_text, model_name=self.llm.model_id)
             print(f"Summarized message text token count: {summarized_token_count}")
-            #print(f"Summarized message text:\n{summarized_text}\n")        
-    
+     
             self.status = summarized_text
             print(f"New conversation message history:\n{summarized_text}")
 
@@ -170,13 +168,25 @@ class MemoryComponent(Component):
         )
         
         return summarized_output
-
+    
+    # Function for approximate token counting for Anthropic's models
+    def approximate_anthropic_token_count(self,text: str) -> int:
+	    """Approximate the token count for Anthropic's Claude models."""
+	    # Approximate 1 token ≈ 4 characters (including spaces)
+	    return len(text) // 4
+    
     def count_tokens(self, text: str, model_name: str) -> int:
-        """Count the tokens in the text using tiktoken."""
-        # Load the tokenizer for the specified model
-        encoding = tiktoken.encoding_for_model(model_name)
-
-        # Encode the text and return the number of tokens
-        return len(encoding.encode(text))
-
+        """Dynamically count the tokens based on the model type."""
+        if "claude" in model_name.lower():  # Check if it's an Anthropic Claude model
+            print(f"Using Anthropic's approximate token counting for model: {model_name}")
+            return self.approximate_anthropic_token_count(text)
+        else:
+            print(f"Using OpenAI tiktoken for model: {model_name}")
+            try:
+                # Load the tokenizer for the specified model using tiktoken
+                encoding = tiktoken.encoding_for_model(model_name)
+                return len(encoding.encode(text))
+            except Exception as e:
+                print(f"Error in token counting: {str(e)}")
+                return len(text) // 4  # Fallback approximation
 
